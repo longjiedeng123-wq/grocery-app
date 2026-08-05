@@ -6,6 +6,14 @@ export default function App() {
   function handleSearch() {
     console.log("Searching for:", searchQuery);
   }
+
+  const GROCERY_DB = [
+  { id: 1, name: "Milk", store: "Trader Joe's", price: "$3.99" },
+  { id: 2, name: "Milk", store: "Whole Foods", price: "$4.99" },
+  { id: 3, name: "Eggs", store: "Ralphs", price: "$2.99" },
+  { id: 4, name: "Bread", store: "Trader Joe's", price: "$2.49" }
+  ];
+
   return (
     <div>
       <header>
@@ -18,7 +26,14 @@ export default function App() {
         onChange={(e) => setSearchQuery(e.target.value)}
         />
         <button onClick={handleSearch}>Search</button>
-        <div id="results">Live search preview: {searchQuery}</div>
+        <div id="results">{GROCERY_DB.filter((item) => 
+        item.name.toLowerCase().includes(searchQuery.toLowerCase()))
+        .map((item) => (
+          <div key={item.id}>
+            <strong>{item.name}</strong> at {item.store} - {item.price}
+          </div>
+        ))}
+        </div>
       </main>
     </div>
  );
