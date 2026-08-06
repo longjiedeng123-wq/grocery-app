@@ -1,7 +1,9 @@
 // Import tools
+require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
+const { GoogleGenerativeAI } = require('@google/generative-ai'); // 2. Import Gemini
 // Initialize the server
 const app = express();
 const PORT = 3000;
@@ -9,6 +11,8 @@ const PORT = 3000;
 // Set up Middleware (Security & Formatting)
 app.use(cors()); // Allows your React frontend to talk to this server
 app.use(express.json()); // Allows the server to read JSON data
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 const db = new sqlite3.Database('./groceries.db', (err) => {
   if (err) console.error("Database error:", err.message);
@@ -54,7 +58,7 @@ app.get('/api/groceries', (req, res) => {
       if (err) return res.status(500).json({ error: err.message });
       res.json(rows);
     });
-    
+
   } else {
     // If the search box is empty, return everything
     console.log("Fetching all groceries...");
@@ -65,6 +69,56 @@ app.get('/api/groceries', (req, res) => {
   }
 });
 
+// 5. The AI Brain: Smart Search Endpoint
+app.post('/api/smart-search', async (req, res) => {
+  const humanQuery = req.body.query; // e.g., "high protein breakfast"
+  
+  if (!humanQuery) {
+    return res.status(400).json({ error: "Please provide a query." });
+  }
+
+  try {
+    console.log(`🧠 AI is analyzing request: "${humanQuery}"`);
+    
+    // A. Ask the AI to figure out the ingredients
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const aiPrompt = `
+      The user wants to make: "${humanQuery}". 
+      Return a simple, comma-separated list of 3 basic grocery items needed to make this. 
+      Do not use formatting, bullet points, or extra words. Just the items.
+      Example output: eggs, milk, bacon
+    `;
+    
+    const result = await model.generateContent(aiPrompt);
+    const aiText = result.response.text().trim();
+    console.log(`🤖 AI suggests: ${aiText}`);
+
+    // B. Turn the AI string ("eggs, milk, bacon") into an array (['eggs', 'milk', 'bacon'])
+    const suggestedItems = aiText.split(',').map(item => item.trim());
+
+    // C. Search our SQLite database for these specific items!
+    // We dynamically create enough '?' placeholders for however many items the AI suggests
+    const placeholders = suggestedItems.map(() => 'name LIKE ?').join(' OR ');
+    const sql = `SELECT * FROM groceries WHERE ${placeholders}`;
+    
+    // We format the array to work with SQL LIKE statements (e.g., '%eggs%')
+    const safeQueryParams = suggestedItems.map(item => `%${item}%`);
+
+    db.all(sql, safeQueryParams, (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      
+      // Send the matching groceries back to the frontend!
+      res.json({
+        aiSuggestion: aiText,
+        results: rows
+      });
+    });
+
+  } catch (error) {
+    console.error("AI Error:", error);
+    res.status(500).json({ error: "Failed to process AI request" });
+  }
+});
 
 // 5. Turn the server on
 app.listen(PORT, () => {
