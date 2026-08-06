@@ -1,12 +1,12 @@
-// 1. Import our tools
+// Import tools
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
-// 2. Initialize the server
+// Initialize the server
 const app = express();
 const PORT = 3000;
 
-// 3. Set up Middleware (Security & Formatting)
+// Set up Middleware (Security & Formatting)
 app.use(cors()); // Allows your React frontend to talk to this server
 app.use(express.json()); // Allows the server to read JSON data
 
@@ -15,7 +15,7 @@ const db = new sqlite3.Database('./groceries.db', (err) => {
   else console.log('✅ Connected to the SQLite database.');
 });
 
-// 3. Create the table and add data (if it's empty)
+// Create the table and add data (if it's empty)
 db.serialize(() => {
   db.run(`CREATE TABLE IF NOT EXISTS groceries (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -37,17 +37,32 @@ db.serialize(() => {
   });
 });
 
-// 5. Create our grocery API Routes
+// 4. Query the database using a Search Parameter!
 app.get('/api/groceries', (req, res) => {
-  console.log("Fetching grocery data from SQLite database...");
-  db.all(`SELECT * FROM groceries`, [], (err, rows) => {
-    if (err) {
-      res.status(500).json({ error: err.message });
-      return;
-    }
-    // Send the SQL rows back to React as JSON
-    res.json(rows);
-  });
+  // Grab the search term from the URL (e.g., ?q=milk)
+  const searchQuery = req.query.q; 
+
+  if (searchQuery) {
+    // If the user typed something, use SQL to filter it
+    console.log(`Searching database for: ${searchQuery}`);
+    
+    // The % symbols mean "anything before or after this word"
+    const sql = `SELECT * FROM groceries WHERE name LIKE ?`;
+    const safeQuery = `%${searchQuery}%`;
+    
+    db.all(sql, [safeQuery], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+    
+  } else {
+    // If the search box is empty, return everything
+    console.log("Fetching all groceries...");
+    db.all(`SELECT * FROM groceries`, [], (err, rows) => {
+      if (err) return res.status(500).json({ error: err.message });
+      res.json(rows);
+    });
+  }
 });
 
 

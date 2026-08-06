@@ -2,26 +2,22 @@ import { useState, useEffect } from 'react';
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
-
   const [groceries, setGroceries] = useState<any[]>([]);
 
-  // 3. The Bridge: Fetch data when the app loads
+  // 1. The Bridge: Now it runs every time 'searchQuery' changes!
   useEffect(() => {
-    console.log("Attempting to fetch data from backend...");
-    
-    fetch('http://localhost:3000/api/groceries')
+    // We attach the search string to the end of the URL
+    fetch(`http://localhost:3000/api/groceries?q=${searchQuery}`)
       .then((response) => response.json())
       .then((data) => {
-        console.log("Data received:", data);
-        setGroceries(data); // Save the data to our React state!
+        setGroceries(data); 
       })
       .catch((error) => console.error("Error fetching data:", error));
-  }, []);
+  }, [searchQuery]); // <-- We added searchQuery to the dependency array!
 
-  const filteredGroceries = groceries.filter((item) => 
-    item.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
+  // 2. IMPORTANT: We deleted the old frontend .filter() logic completely!
+  // The backend does the filtering now. We just pass 'groceries' directly.
+  const filteredGroceries = groceries;
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
