@@ -1,18 +1,27 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
 
-  function handleSearch() {
-    console.log("Searching for:", searchQuery);
-  }
+  const [groceries, setGroceries] = useState<any[]>([]);
 
-  const GROCERY_DB = [
-  { id: 1, name: "Milk", store: "Trader Joe's", price: "$3.99" },
-  { id: 2, name: "Milk", store: "Whole Foods", price: "$4.99" },
-  { id: 3, name: "Eggs", store: "Ralphs", price: "$2.99" },
-  { id: 4, name: "Bread", store: "Trader Joe's", price: "$2.49" }
-  ];
+  // 3. The Bridge: Fetch data when the app loads
+  useEffect(() => {
+    console.log("Attempting to fetch data from backend...");
+    
+    fetch('http://localhost:3000/api/groceries')
+      .then((response) => response.json())
+      .then((data) => {
+        console.log("Data received:", data);
+        setGroceries(data); // Save the data to our React state!
+      })
+      .catch((error) => console.error("Error fetching data:", error));
+  }, []);
+
+  const filteredGroceries = groceries.filter((item) => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
 
   return (
     <div className="min-h-screen bg-slate-50 p-6">
@@ -38,12 +47,10 @@ export default function App() {
           </button>
           
           <div id="results" className="space-y-2 mt-4">
-            {GROCERY_DB
-              .filter((item) => item.name.toLowerCase().includes(searchQuery.toLowerCase()))
-              .map((item) => (
-                <div key={item.id} className="p-3 border rounded-lg flex justify-between items-center bg-slate-50">
-                  <span><strong>{item.name}</strong> at {item.store}</span>
-                  <span className="text-green-600 font-semibold">{item.price}</span>
+            {filteredGroceries.map((item) => (
+              <div key={item.id} className="p-3 border rounded-lg flex justify-between items-center bg-slate-50">
+                <span><strong>{item.name}</strong> at {item.store}</span>
+                <span className="text-green-600 font-semibold">{item.price}</span>
                 </div>
             ))}
           </div>
