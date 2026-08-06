@@ -4,16 +4,24 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [groceries, setGroceries] = useState<any[]>([]);
 
-  // 1. The Bridge: Now it runs every time 'searchQuery' changes!
+  // 1. The Bridge: Now with Debouncing!
   useEffect(() => {
-    // We attach the search string to the end of the URL
-    fetch(`http://localhost:3000/api/groceries?q=${searchQuery}`)
-      .then((response) => response.json())
-      .then((data) => {
-        setGroceries(data); 
-      })
-      .catch((error) => console.error("Error fetching data:", error));
-  }, [searchQuery]); // <-- We added searchQuery to the dependency array!
+    // Start a 300-millisecond timer
+    const delayDebounceFn = setTimeout(() => {
+      console.log(`Sending fetch request for: ${searchQuery}`);
+      fetch(`http://localhost:3000/api/groceries?q=${searchQuery}`)
+        .then((response) => response.json())
+        .then((data) => {
+          setGroceries(data); 
+        })
+        .catch((error) => console.error("Error fetching data:", error));
+    }, 300);
+
+    // CRITICAL: Cleanup function. If the user types a new letter before 
+    // the 300ms is up, React cancels the old timer and starts a new one!
+    return () => clearTimeout(delayDebounceFn);
+    
+  }, [searchQuery]);
 
   // 2. IMPORTANT: We deleted the old frontend .filter() logic completely!
   // The backend does the filtering now. We just pass 'groceries' directly.
