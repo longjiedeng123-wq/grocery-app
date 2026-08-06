@@ -3,7 +3,7 @@ require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const cors = require('cors');
 const sqlite3 = require('sqlite3').verbose();
-const { GoogleGenerativeAI } = require('@google/generative-ai'); // 2. Import Gemini
+const { GoogleGenAI } = require('@google/genai');
 // Initialize the server
 const app = express();
 const PORT = 3000;
@@ -12,7 +12,8 @@ const PORT = 3000;
 app.use(cors()); // Allows your React frontend to talk to this server
 app.use(express.json()); // Allows the server to read JSON data
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+
 
 const db = new sqlite3.Database('./groceries.db', (err) => {
   if (err) console.error("Database error:", err.message);
@@ -80,8 +81,7 @@ app.post('/api/smart-search', async (req, res) => {
   try {
     console.log(`🧠 AI is analyzing request: "${humanQuery}"`);
     
-    // A. Ask the AI to figure out the ingredients
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // A. Ask the AI to figure out the ingredients (Using the NEW SDK!)
     const aiPrompt = `
       The user wants to make: "${humanQuery}". 
       Return a simple, comma-separated list of 3 basic grocery items needed to make this. 
@@ -89,8 +89,13 @@ app.post('/api/smart-search', async (req, res) => {
       Example output: eggs, milk, bacon
     `;
     
-    const result = await model.generateContent(aiPrompt);
-    const aiText = result.response.text().trim();
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.5-flash',
+      contents: aiPrompt
+    });
+    
+    // The new SDK stores the result directly in response.text
+    const aiText = response.text.trim();
     console.log(`🤖 AI suggests: ${aiText}`);
 
     // B. Turn the AI string ("eggs, milk, bacon") into an array (['eggs', 'milk', 'bacon'])

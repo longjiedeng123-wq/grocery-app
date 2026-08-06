@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 export default function App() {
   const [searchQuery, setSearchQuery] = useState('');
   const [groceries, setGroceries] = useState<any[]>([]);
-
+  const [isAiLoading, setIsAiLoading] = useState(false);
   // 1. The Bridge: Now with Debouncing!
   useEffect(() => {
     // Start a 300-millisecond timer
@@ -27,6 +27,29 @@ export default function App() {
   // The backend does the filtering now. We just pass 'groceries' directly.
   const filteredGroceries = groceries;
 
+  const handleSmartSearch = () => {
+    if (!searchQuery) return; 
+    
+    setIsAiLoading(true); 
+    
+    fetch('http://localhost:3000/api/smart-search', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query: searchQuery })
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setGroceries(data.results || []);
+        setIsAiLoading(false); 
+      })
+      .catch((error) => {
+        console.error("AI Error:", error);
+        setIsAiLoading(false);
+      });
+  };
+  
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-xl mx-auto bg-white rounded-xl shadow-md p-6">
@@ -36,19 +59,23 @@ export default function App() {
         </header>
         
         <main className="space-y-4">
-          <input 
-            type="text" 
-            placeholder="Search groceries..." 
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button 
-            onClick={() => console.log("Searching...")}
-            className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-          >
-            Search
-          </button>
+          <div className="flex gap-2">
+            <input 
+              type="text" 
+              placeholder="Search groceries or try 'high protein breakfast'..." 
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+            <button 
+              onClick={handleSmartSearch}
+              disabled={isAiLoading}
+              className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700 disabled:bg-purple-300 transition flex items-center gap-2"
+            >
+              {isAiLoading ? '🧠 Thinking...' : '✨ Ask AI'}
+            </button>
+          </div>
+    
           
           <div id="results" className="space-y-2 mt-4">
             {filteredGroceries.map((item) => (
