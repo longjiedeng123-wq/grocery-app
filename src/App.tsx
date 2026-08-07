@@ -1,55 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useGroceries } from './hooks/useGroceries';
 
 export default function App() {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [groceries, setGroceries] = useState<any[]>([]);
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  // 1. The Bridge: Now with Debouncing!
-  useEffect(() => {
-    // Start a 300-millisecond timer
-    const delayDebounceFn = setTimeout(() => {
-      console.log(`Sending fetch request for: ${searchQuery}`);
-      fetch(`http://localhost:3000/api/groceries?q=${searchQuery}`)
-        .then((response) => response.json())
-        .then((data) => {
-          setGroceries(data); 
-        })
-        .catch((error) => console.error("Error fetching data:", error));
-    }, 300);
+  // 2. Grab all the logic and variables from our hook in one line of code
+  const { 
+    searchQuery, 
+    setSearchQuery, 
+    groceries, 
+    isAiLoading, 
+    handleSmartSearch 
+  } = useGroceries();
 
-    // CRITICAL: Cleanup function. If the user types a new letter before 
-    // the 300ms is up, React cancels the old timer and starts a new one!
-    return () => clearTimeout(delayDebounceFn);
-    
-  }, [searchQuery]);
-
-  // 2. IMPORTANT: We deleted the old frontend .filter() logic completely!
-  // The backend does the filtering now. We just pass 'groceries' directly.
   const filteredGroceries = groceries;
 
-  const handleSmartSearch = () => {
-    if (!searchQuery) return; 
-    
-    setIsAiLoading(true); 
-    
-    fetch('http://localhost:3000/api/smart-search', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ query: searchQuery })
-    })
-      .then((response) => response.json())
-      .then((data) => {
-        setGroceries(data.results || []);
-        setIsAiLoading(false); 
-      })
-      .catch((error) => {
-        console.error("AI Error:", error);
-        setIsAiLoading(false);
-      });
-  };
-  
   return (
     <div className="min-h-screen bg-slate-50 p-6">
       <div className="max-w-xl mx-auto bg-white rounded-xl shadow-md p-6">
