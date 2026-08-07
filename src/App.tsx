@@ -1,5 +1,5 @@
 import { useGroceries } from './hooks/useGroceries';
-
+import GroceryCard from './components/GroceryCard'; // 🧱 Import your new Lego block!
 export default function App() {
   // 2. Grab all the logic and variables from our hook in one line of code
   const { 
@@ -40,11 +40,13 @@ export default function App() {
     
           
           <div id="results" className="space-y-2 mt-4">
-            {filteredGroceries.map((item) => (
-              <div key={item.id} className="p-3 border rounded-lg flex justify-between items-center bg-slate-50">
-                <span><strong>{item.name}</strong> at {item.store}</span>
-                <span className="text-green-600 font-semibold">{item.price}</span>
-                </div>
+            {groceries.map((item) => (
+              <GroceryCard 
+                key={item.id} 
+                name={item.name} 
+                store={item.store} 
+                price={item.price} 
+              />
             ))}
           </div>
         </main>
