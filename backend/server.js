@@ -2,8 +2,11 @@
 require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const cors = require('cors');
-const sqlite3 = require('sqlite3').verbose();
 const { GoogleGenAI } = require('@google/genai');
+
+// ✅ IMPORT OUR CLEAN DATABASE CONFIGURATION
+const db = require('./config/database');
+
 // Initialize the server
 const app = express();
 const PORT = 3000;
@@ -14,33 +17,6 @@ app.use(express.json()); // Allows the server to read JSON data
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-
-const db = new sqlite3.Database('./groceries.db', (err) => {
-  if (err) console.error("Database error:", err.message);
-  else console.log('✅ Connected to the SQLite database.');
-});
-
-// Create the table and add data (if it's empty)
-db.serialize(() => {
-  db.run(`CREATE TABLE IF NOT EXISTS groceries (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT,
-    store TEXT,
-    price TEXT
-  )`);
-
-  db.get(`SELECT COUNT(*) AS count FROM groceries`, (err, row) => {
-    if (row.count === 0) {
-      console.log("Database is empty. Seeding initial data...");
-      const insert = db.prepare(`INSERT INTO groceries (name, store, price) VALUES (?, ?, ?)`);
-      insert.run("Milk", "Trader Joe's", "$3.99");
-      insert.run("Milk", "Whole Foods", "$4.99");
-      insert.run("Eggs", "Ralphs", "$2.99");
-      insert.run("Bread", "Trader Joe's", "$2.49");
-      insert.finalize();
-    }
-  });
-});
 
 // 4. Query the database using a Search Parameter!
 app.get('/api/groceries', (req, res) => {
